@@ -1,9 +1,10 @@
 const db = require('../db/db');
 
 async function findAll(filters = {}) {
-    const casos = db('casos');
-    if (filters.agente_id) casos.where({ agente_id: filters.agente_id });
-    if (filters.status) casos.where({ status: filters.status });
+    const query = db('casos');
+    if (filters.agente_id) query.where({ agente_id: filters.agente_id });
+    if (filters.status) query.where({ status: filters.status });
+    const casos = await query;
     return casos;
 }
 
@@ -20,7 +21,8 @@ async function create(caso) {
 }
 
 async function update(id, updatedCasoData) {
-    return updatedCaso = db('casos').where({ id: id }).update(updatedCasoData, ['*']);
+    const updatedCaso = await db('casos').where({ id }).update(updatedCasoData, ['*']);
+    return updatedCaso;
 }
 
 async function remove(id) {

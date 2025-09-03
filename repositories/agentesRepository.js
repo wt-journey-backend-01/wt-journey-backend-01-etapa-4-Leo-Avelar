@@ -7,7 +7,7 @@ async function findAll(filters) {
     else if (filters.sort === '-dataDeIncorporacao') query.orderBy('dataDeIncorporacao', 'desc');
     
     const agentes = await query;
-    return agentes.map((agente) => ({
+    return agentes((agente) => ({
         ...agente,
         dataDeIncorporacao: agente.dataDeIncorporacao.toISOString().split('T')[0],
     }));
@@ -49,5 +49,5 @@ module.exports = {
     findById,
     create,
     update,
-    delete: remove,
+    remove,
 };

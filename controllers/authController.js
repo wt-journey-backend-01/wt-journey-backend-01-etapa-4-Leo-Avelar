@@ -11,6 +11,7 @@ async function login(req, res, next) {
     try {
         const parsed = loginSchema.parse(req.body);
 
+        let user;
         if (parsed.email) user = await findByEmail(parsed.email);
         if (!user) throw new AppError(401, 'Credenciais inválidas.');
         
@@ -85,10 +86,10 @@ async function deleteUser(req, res, next) {
 
 async function logout(req, res, next) {
     try {
-        req.user = null;
-        req.clearCookie('access_token', { path: '/' });
-        req.clearCookie("refresh_token", { path: '/' });
-        res.status(200).json({ status: 200, message: 'Logout realizado com sucesso.' });
+        res.user = null;
+        res.clearCookie('access_token', { path: '/' });
+        res.clearCookie("refresh_token", { path: '/' });
+        res.status(200).json({ status: 200, message: 'Logout realizado com sucesso, apague o token localmente' });
     } catch (err) {
         return next(new AppError(500, 'Erro ao realizar logout.'));
     }

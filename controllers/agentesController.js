@@ -100,9 +100,12 @@ async function partialUpdate(req, res, next) {
     }
 }
 
-async function remove(req, res) {
+async function deleteAgent(req, res) {
 	const { id } = req.params;
-	const deleted = await agentesRepository.delete(id);
+    const idNum = Number(id);
+    
+    if (isNaN(idNum)) return res.status(400).json({ message: 'ID inválido.' });
+    const deleted = await agentesRepository.remove(idNum);
 
 	if (!deleted) return res.status(404).json({ message: 'Agente não encontrado.' });
 	res.status(204).send();
@@ -114,5 +117,5 @@ module.exports = {
     create,
     update,
     partialUpdate,
-    delete: remove,
+    deleteAgent
 };
