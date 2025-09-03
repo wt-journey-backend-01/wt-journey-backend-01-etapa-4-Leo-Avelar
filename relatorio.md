@@ -1,181 +1,106 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 7 créditos restantes para usar o sistema de feedback AI.
+Você tem 6 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para Leo-Avelar:
 
 Nota final: **50.3/100**
 
-Olá, Leo-Avelar! 👋🚀
+Olá, Leo-Avelar! 🚀
 
-Primeiro, quero te parabenizar pelo esforço e pela entrega dessa etapa tão importante que envolve segurança, autenticação e uma aplicação mais robusta em Node.js! 🎉 Você conseguiu implementar várias funcionalidades essenciais, como o registro, login, logout, proteção de rotas com JWT e até o endpoint `/usuarios/me`, que é um bônus muito legal! Isso mostra que você está no caminho certo para construir APIs profissionais e seguras.
-
----
-
-### 🎯 O que você acertou muito bem
-
-- **Estrutura do projeto:** Está muito próxima do esperado! Você organizou controllers, repositories, middlewares, routes e utils conforme o padrão MVC, o que é fundamental para a escalabilidade e manutenção do código.
-- **Autenticação JWT:** Implementou o login gerando token JWT com expiração, e o middleware de autenticação está protegendo as rotas `/agentes` e `/casos` corretamente, respondendo com 401 quando o token está faltando ou inválido.
-- **Hashing de senha com bcrypt:** O registro de usuários já faz o hash da senha, o que é essencial para segurança.
-- **Endpoints básicos de usuários:** Criou registro, login, logout, exclusão de usuário e `/usuarios/me`.
-- **Validações:** Usou o Zod para validação dos dados, o que é excelente para garantir a integridade dos dados recebidos.
-- **Tratamento de erros personalizado:** O uso do `AppError` e do middleware `errorHandler` é uma boa prática para padronizar respostas de erro.
-
-Além disso, você passou vários testes base importantes, como criação e login de usuários, logout, proteção das rotas com JWT, e manipulação dos agentes e casos com os status codes corretos. Isso é motivo para comemorar! 🎉👏
+Primeiramente, parabéns pelo esforço e dedicação em construir uma API REST completa, com autenticação, autorização e integração com PostgreSQL! 🎉 Você já conseguiu fazer várias partes importantes funcionarem, o que é um baita avanço. Vamos juntos analisar seu código para entender onde podemos melhorar e destravar os testes que ainda falharam, ok? 😉
 
 ---
 
-### 🚩 Pontos que precisam de atenção e análise detalhada dos testes que falharam
+## 🎉 Pontos Positivos e Conquistas Bônus
 
-Você teve várias falhas em testes base, principalmente relacionados a agentes, casos e um teste de usuário importante (erro 400 ao tentar criar usuário com email já em uso). Vamos destrinchar os principais problemas para você entender a causa raiz e como corrigir.
+- Sua estrutura de diretórios está muito bem organizada e segue o padrão MVC esperado, com pastas claras para controllers, repositories, routes, middlewares e utils. Isso é fundamental para escalabilidade e manutenção do projeto.
+- O uso do Knex para migrations e seeds está correto e você criou as tabelas essenciais, incluindo a tabela `usuarios` para autenticação.
+- O fluxo de autenticação com bcrypt para hash de senha e JWT para token está implementado e funcionando, como mostram os testes que passaram.
+- Você implementou o middleware de autenticação para proteger as rotas de agentes e casos, garantindo que só usuários autenticados possam acessá-las.
+- Os endpoints básicos para criação, listagem, atualização e deleção de agentes e casos estão funcionando e retornando os status codes esperados.
+- Você conseguiu implementar os bônus de logout e endpoint `/usuarios/me` para retornar informações do usuário logado. Isso é excelente!
 
 ---
 
-## 1. Usuário: Recebe erro 400 ao tentar criar um usuário com e-mail já em uso
+## 🚩 Análise dos Testes que Falharam e Causas Raiz
 
-### O que acontece no seu código?
+Vamos detalhar os principais grupos de testes que falharam para entender exatamente o que está acontecendo.
 
-No `authController.js`, no método `register`, você faz corretamente a verificação se o email já existe:
+---
+
+### 1. Falha: `'USERS: Recebe erro 400 ao tentar criar um usuário com e-mail já em uso'`
+
+**O que o teste espera:** Quando tentar registrar um usuário com um email que já existe no banco, sua API deve retornar status 400 com uma mensagem clara.
+
+**O que seu código faz:**
+
+No seu `authController.js`, no método `register`, você verifica se o email já existe com:
 
 ```js
 const emailExists = await findByEmail(parsed.email);
 if (emailExists) throw new AppError(400, 'E-mail já cadastrado.');
 ```
 
-Porém, o teste indica que essa validação não está funcionando conforme esperado. Isso pode acontecer se:
+Isso está correto, mas o teste falha. Por quê?
 
-- O método `findByEmail` não está retornando o usuário corretamente.
-- Ou o erro está sendo lançado, mas não está sendo retornado com status 400 para o cliente.
+**Possível causa raiz:**
 
-### Análise do `findByEmail` em `usuariosRepository.js`:
-
-```js
-async function findByEmail(email) {
-    return db('usuarios').where({ email }).first();
-}
-```
-
-Está correto, retorna o usuário se existir.
-
-### Possível causa raiz:
-
-No `authController.js` dentro do `register`, você está lançando o erro com `throw new AppError(400, 'E-mail já cadastrado.')`, que é correto. Mas será que esse erro está sendo tratado corretamente no middleware de erro (`errorHandler.js`)? Se o middleware não estiver capturando esse erro, o cliente pode receber outro status code ou erro genérico.
-
-**Verifique se seu `errorHandler.js` está configurado para capturar erros do tipo `AppError` e enviar o status correto.**
-
-Além disso, note que no `login` você tem um problema de variável não declarada:
+- Seu endpoint de registro está em `/auth/register` (como definido em `routes/authRoutes.js`), o que está correto.
+- Porém, o teste pode estar esperando que a resposta de erro tenha exatamente o formato esperado, e seu retorno atual é:
 
 ```js
-if (parsed.email) user = await findByEmail(parsed.email);
+return res.status(201).json({status: 201, message: 'Usuário registrado com sucesso', user: created});
 ```
 
-Aqui você usa `user` sem declará-la antes com `let` ou `const`. Isso pode causar erro em tempo de execução e afetar testes. Corrija para:
+Para erro, você lança `AppError(400, 'E-mail já cadastrado.')`, que é tratado pelo middleware de erro.
 
-```js
-let user;
-if (parsed.email) user = await findByEmail(parsed.email);
-```
+**Sugestão:**
 
-Esse erro pode estar afetando o fluxo de autenticação e possivelmente o registro.
+Verifique se o middleware de erro (`errorHandler.js`) está configurado para retornar o status e a mensagem corretamente, e se o teste espera um JSON com `{ message: 'E-mail já cadastrado.' }` ou `{ error: '...' }`. Às vezes, o formato do JSON de erro pode causar falha no teste.
+
+Além disso, confira se no seu arquivo `.env` a variável `JWT_SECRET` está definida, pois o fallback para `"secret"` pode causar inconsistências em ambiente de testes.
 
 ---
 
-## 2. Agentes: Diversos testes falharam, incluindo criação, atualização, busca e exclusão
+### 2. Falhas em Filtragem e Busca (Bônus que Falharam)
 
-### Possível causa raiz
+Testes como:
 
-No `agentesRepository.js`, seu método `remove` está assim:
+- `Simple Filtering: Estudante implementou endpoint de filtragem de caso por status corretamente`
+- `Simple Filtering: Estudante implementou endpoint de busca de agente responsável por caso`
+- `Simple Filtering: Estudante implementou endpoint de filtragem de caso por agente corretamente`
+- `Simple Filtering: Estudante implementou endpoint de filtragem de casos por keywords no título e/ou descrição`
+- `User details: /usuarios/me retorna os dados do usuario logado e status code 200`
+
+**Análise:**
+
+Você implementou esses endpoints, mas eles não passaram os testes bônus.
+
+Por exemplo, no seu `casosController.js`, o método `getAll` trata filtros assim:
 
 ```js
-async function remove(id) {
-    return db('agentes').where({ id: id }).del();
+async function getAll(req, res) {
+	let casos = await casosRepository.findAll();
+
+	if (req.query.status) {
+        casos = casos.filter(caso => caso.status == req.query.status);
+    }
+	if (req.query.agente_id) {
+        casos = casos.filter(caso => caso.agente_id == req.query.agente_id);
+    }
+    
+	res.status(200).json(casos);
 }
 ```
 
-Mas no `agentesController.js`, o método que chama esse remove é chamado de `delete`:
+**Problema raiz:**
 
-```js
-async function remove(req, res) {
-	const { id } = req.params;
-	const deleted = await agentesRepository.delete(id);
+- Você está buscando *todos* os casos no banco com `await casosRepository.findAll()` sem filtros, e só depois filtra em memória com `.filter()`.
+- Isso é ineficiente e pode não funcionar corretamente, porque o filtro no array é feito após o retorno do banco, e pode causar resultados errados ou lentos.
+- O ideal é passar os filtros para a query no repositório para que o banco faça a filtragem.
 
-	if (!deleted) return res.status(404).json({ message: 'Agente não encontrado.' });
-	res.status(204).send();
-}
-```
-
-Porém, no `agentesRepository.js`, você exportou a função como `remove`, mas no controller está chamando `delete` do repository. Isso gera erro, pois `delete` não existe no repository.
-
-**Solução:** Alinhe o nome da função exportada e importada. Por exemplo, no repository:
-
-```js
-async function deleteAgent(id) {
-    return db('agentes').where({ id }).del();
-}
-
-module.exports = {
-    findAll,
-    findById,
-    create,
-    update,
-    delete: deleteAgent,
-};
-```
-
-E no controller, continue usando `agentesRepository.delete(id)`.
-
-No seu código atual, você exporta `delete: remove`, isso está correto, mas no controller você chama `agentesRepository.delete(id)`. Isso deveria funcionar, mas verifique se não há conflito com a palavra reservada `delete` no JS. Por segurança, prefira usar outro nome, como `deleteAgent`.
-
-Além disso, verifique se o parâmetro `id` recebido no controller está sendo convertido para número antes de passar para o repository, pois no seu código você não faz essa conversão na função `remove` do controller, diferente de outros métodos que fazem:
-
-```js
-const { id } = req.params;
-const idNum = Number(id);
-if (isNaN(idNum)) return res.status(400).json({ message: 'ID inválido.' });
-const deleted = await agentesRepository.delete(idNum);
-```
-
-Essa validação é importante para evitar erros silenciosos.
-
----
-
-## 3. Casos: Falhas em criação, atualização, busca e deleção
-
-### Possível causa raiz
-
-No `casosRepository.js`, seu método `update` está assim:
-
-```js
-async function update(id, updatedCasoData) {
-    return updatedCaso = db('casos').where({ id: id }).update(updatedCasoData, ['*']);
-}
-```
-
-Aqui você está retornando o resultado da query Knex, mas não está aguardando a promise com `await`. Isso pode causar comportamento inesperado.
-
-**Corrija para:**
-
-```js
-async function update(id, updatedCasoData) {
-    const updatedCaso = await db('casos').where({ id }).update(updatedCasoData, ['*']);
-    return updatedCaso;
-}
-```
-
-Além disso, no método `findAll`:
-
-```js
-async function findAll(filters = {}) {
-    const casos = db('casos');
-    if (filters.agente_id) casos.where({ agente_id: filters.agente_id });
-    if (filters.status) casos.where({ status: filters.status });
-    return casos;
-}
-```
-
-Você está retornando a query builder sem executar a consulta (`await`). Isso faz com que o retorno seja uma query pendente, não os dados.
-
-**Corrija para:**
+No seu `casosRepository.js`, você tem:
 
 ```js
 async function findAll(filters = {}) {
@@ -187,115 +112,207 @@ async function findAll(filters = {}) {
 }
 ```
 
-Esses detalhes podem estar causando falhas em vários testes de listagem e filtragem.
+Mas no controller, você chama sem passar filtros.
+
+**Solução:**
+
+No controller, passe os filtros para o repositório:
+
+```js
+async function getAll(req, res) {
+    const filters = {};
+    if (req.query.status) filters.status = req.query.status;
+    if (req.query.agente_id) filters.agente_id = req.query.agente_id;
+
+    const casos = await casosRepository.findAll(filters);
+    res.status(200).json(casos);
+}
+```
+
+Assim a filtragem é feita no banco, o que é correto e esperado.
+
+Esse mesmo raciocínio vale para outros filtros e para a busca de agente responsável pelo caso.
 
 ---
 
-## 4. Middleware de autenticação: erros no tratamento de token
+### 3. Problemas com Atualização e Retorno de Dados no Repositório de Casos
 
-No seu `authMiddleware.js`, você lança erros com `throw new AppError(...)` dentro do middleware síncrono. Porém, o Express não captura erros lançados em middleware assíncronos ou callbacks, como o `jwt.verify` que usa callback.
-
-No seu código:
+No `casosRepository.js`, seu método `update` é:
 
 ```js
-jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, user) => {
-    if (err) {
-        throw new AppError(401, 'Token inválido ou expirado.');
-    }
-    req.user = user;
-    next();
-});
+async function update(id, updatedCasoData) {
+    const updatedCaso = await db('casos').where({ id }).update(updatedCasoData, ['*']);
+    return updatedCaso;
+}
 ```
 
-**Problema:** lançar erro dentro do callback não será capturado pelo Express, e pode travar o servidor.
+**Problema:**
 
-**Solução:** Use `return next(new AppError(...))` para encaminhar o erro ao middleware de erro, assim:
+- O método `.update()` do Knex retorna um array com os registros atualizados, mas você está retornando direto `updatedCaso`.
+- No controller, você verifica se `!updated` para retornar 404, e também espera um objeto com dados do caso atualizado.
+
+**Solução:**
+
+Faça o retorno consistente, por exemplo:
 
 ```js
-jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, user) => {
-    if (err) {
-        return next(new AppError(401, 'Token inválido ou expirado.'));
-    }
-    req.user = user;
-    next();
-});
+async function update(id, updatedCasoData) {
+    const [updatedCaso] = await db('casos').where({ id }).update(updatedCasoData, ['*']);
+    return updatedCaso || null;
+}
 ```
 
-Isso garante que o erro seja tratado corretamente e o cliente receba o status 401.
+Assim, no controller, você pode verificar se `updatedCaso` é `null` e retornar 404, e enviar o objeto atualizado no JSON.
 
 ---
 
-## 5. Logout: uso incorreto de cookies
+### 4. Problemas Similares no Repositório de Agentes
 
-No seu `authController.js`:
+No `agentesRepository.js`, no método `findAll`, você tem:
 
 ```js
-async function logout(req, res, next) {
+const agentes = await query;
+return agentes((agente) => ({
+    ...agente,
+    dataDeIncorporacao: agente.dataDeIncorporacao.toISOString().split('T')[0],
+}));
+```
+
+**Problema:**
+
+- `agentes` é um array, mas você está tentando chamar `agentes(...)` como se fosse uma função. O correto é usar `.map()`.
+
+**Correção:**
+
+```js
+return agentes.map((agente) => ({
+    ...agente,
+    dataDeIncorporacao: agente.dataDeIncorporacao.toISOString().split('T')[0],
+}));
+```
+
+Esse erro pode estar causando falhas nos testes relacionados à listagem e retorno dos agentes.
+
+---
+
+### 5. Problema na Função `deleteUser` do `authController.js`
+
+No `authController.js`, você tem:
+
+```js
+async function deleteUser(req, res, next) {
+    const { id } = req.params;
     try {
-        req.user = null;
-        req.clearCookie('access_token', { path: '/' });
-        req.clearCookie("refresh_token", { path: '/' });
-        res.status(200).json({ status: 200, message: 'Logout realizado com sucesso.' });
+        const deleted = await deleteUser(id);
+        if (!deleted) return next(new AppError(404, 'Usuário não encontrado.'));
+        
+        res.status(204).send();
     } catch (err) {
-        return next(new AppError(500, 'Erro ao realizar logout.'));
+        if (err instanceof AppError) {
+            return next(err);
+        }
+        return next(new AppError(500, 'Erro ao deletar usuário.'));
     }
 }
 ```
 
-Aqui você está chamando `req.clearCookie`, mas `clearCookie` é um método do objeto `res` (response), não do `req` (request).
+**Problema:**
 
-**Corrija para:**
+- Você está chamando `deleteUser(id)` dentro da função `deleteUser`, mas não está importando ou referenciando a função do repositório.
+- Isso causa um erro de função não definida ou chamada recursiva incorreta.
+
+**Solução:**
+
+Importe a função corretamente do repositório `usuariosRepository.js`:
 
 ```js
-res.clearCookie('access_token', { path: '/' });
-res.clearCookie('refresh_token', { path: '/' });
+const { deleteUser: deleteUserRepo } = require('../repositories/usuariosRepository');
+
+async function deleteUser(req, res, next) {
+    const { id } = req.params;
+    try {
+        const deleted = await deleteUserRepo(id);
+        if (!deleted) return next(new AppError(404, 'Usuário não encontrado.'));
+        
+        res.status(204).send();
+    } catch (err) {
+        if (err instanceof AppError) {
+            return next(err);
+        }
+        return next(new AppError(500, 'Erro ao deletar usuário.'));
+    }
+}
 ```
 
-Se você não estiver usando cookies para armazenar tokens (parece que não está), o logout pode simplesmente ser um endpoint que informa o cliente para apagar o token localmente. Mas se quiser usar cookies, essa correção é necessária.
+Isso deve corrigir a funcionalidade de exclusão de usuário.
 
 ---
 
-## 6. Validação de senha e dados extras
+### 6. Middleware de Autenticação: Tratamento de Erros
 
-Você passou vários testes de validação de senha e campos extras, o que é excelente! Isso mostra que seu esquema Zod está bem configurado.
+No `authMiddleware.js`, você lança `AppError` quando não encontra token:
 
----
+```js
+if (!authHeader) {
+    throw new AppError(401, 'Token não fornecido.');
+}
+```
 
-## 7. Documentação e INSTRUCTIONS.md
+**Problema:**
 
-O arquivo `INSTRUCTIONS.md` está bem básico. Para cumprir o requisito de documentação, você deve incluir instruções claras de como registrar, logar, enviar token JWT no header `Authorization` e o fluxo de autenticação esperado. Isso ajuda quem for usar sua API a entender como interagir com ela.
+- Lançar erro diretamente dentro do middleware pode interromper o fluxo sem passar pelo `next()`, o que pode causar erros não tratados.
+- O ideal é chamar `next(new AppError(...))` para que o middleware de erro capture e envie resposta adequada.
 
----
+**Correção:**
 
-### 📚 Recomendações de aprendizado para você aprimorar ainda mais
+```js
+if (!authHeader) {
+    return next(new AppError(401, 'Token não fornecido.'));
+}
+```
 
-- Para entender melhor o uso correto do middleware de autenticação e tratamento de erros no Express, recomendo assistir a este vídeo, feito pelos meus criadores, que fala muito bem sobre autenticação: https://www.youtube.com/watch?v=Q4LQOfYwujk
-- Para aprofundar no uso de JWT na prática, confira este vídeo: https://www.youtube.com/watch?v=keS0JWOypIU
-- Para entender o uso correto do bcrypt e JWT juntos, veja este vídeo: https://www.youtube.com/watch?v=L04Ln97AwoY
-- Caso queira reforçar as boas práticas na organização do seu projeto e arquitetura MVC, este vídeo é excelente: https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
-- Para melhorar o uso do Knex, especialmente nos métodos `findAll` e `update`, veja este guia detalhado: https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s
-
----
-
-### 📝 Resumo rápido dos principais pontos para focar:
-
-- Corrija o problema no `authController.js` onde a variável `user` não foi declarada antes do uso no login.
-- Ajuste o middleware de autenticação para usar `return next(new AppError(...))` dentro do callback do `jwt.verify`, evitando lançar erros diretamente.
-- No `casosRepository.js`, sempre use `await` para executar as queries (especialmente em `findAll` e `update`).
-- No `agentesRepository.js` e `agentesController.js`, verifique o uso consistente do nome da função para deletar (`delete` vs `remove`) e valide o `id` antes de usar.
-- Corrija o uso incorreto de `req.clearCookie` para `res.clearCookie` no logout.
-- Melhore a documentação no `INSTRUCTIONS.md` com exemplos claros de autenticação e uso do token JWT.
-- Certifique-se que o middleware de erro (`errorHandler.js`) está capturando e retornando corretamente os erros `AppError` com o status code adequado.
-- Valide os parâmetros `id` (converter para número e checar `NaN`) em todos os controllers antes de chamar o repository.
-- Considere renomear funções que usem palavras reservadas do JS (como `delete`) para evitar confusão.
+O mesmo vale para o caso em que o token não está presente.
 
 ---
 
-Leo, você está muito perto de entregar uma API segura e funcional! Essas correções vão destravar os testes que estão falhando e deixar sua aplicação pronta para produção. Continue firme, revisando cada ponto com calma e testando passo a passo. Seu empenho é o que mais conta! 💪✨
+## 🛠️ Recomendações Técnicas e Dicas
 
-Se precisar, volte aos vídeos recomendados para reforçar os conceitos e boas práticas. Estou aqui para te ajudar no que precisar!
+- **Filtros e consultas no banco:** Sempre que possível, faça a filtragem diretamente no banco, passando os filtros para o Knex, ao invés de filtrar arrays em memória. Isso melhora performance e evita erros.
+- **Consistência nos retornos dos repositórios:** Garanta que os métodos de update e create retornem objetos únicos (não arrays) para facilitar o uso nos controllers.
+- **Tratamento de erros no middleware:** Use `next()` para encaminhar erros ao middleware de tratamento e evitar crashes inesperados.
+- **Validação de senha:** Seu uso do Zod para validação de senha está correto e os testes passaram, continue assim!
+- **Variáveis de ambiente:** Confirme que o `.env` contém a variável `JWT_SECRET` e que você não tem segredos hardcoded no código.
+- **Testes locais:** Use ferramentas como Postman para testar manualmente os endpoints e verificar os status e mensagens retornadas.
+- **Documentação:** Atualize o `INSTRUCTIONS.md` para incluir exemplos claros de uso do token JWT no header `Authorization: Bearer <token>`.
 
-Um abraço e sucesso no seu aprendizado! 🚀🔥
+---
+
+## 📚 Recursos que Recomendo para Você
+
+- Para entender melhor o uso correto do JWT e bcrypt na autenticação, veja este vídeo, feito pelos meus criadores, que explica muito bem os conceitos: https://www.youtube.com/watch?v=L04Ln97AwoY
+- Para aprofundar na criação de queries eficientes com Knex, recomendo este guia detalhado: https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s
+- Para estruturar seu projeto com MVC e boas práticas, veja esta aula que vai ajudar a organizar seu código: https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
+
+---
+
+## 📋 Resumo dos Principais Pontos para Melhorar
+
+- Corrigir o erro no `agentesRepository.js` trocando `agentes(...)` por `agentes.map(...)`.
+- Ajustar o `casosController.js` para passar filtros para o repositório e fazer a filtragem no banco, não em memória.
+- No `casosRepository.js`, ajustar o método `update` para retornar o objeto atualizado corretamente (desestruturar o array).
+- Corrigir o `deleteUser` no `authController.js` para importar e usar corretamente a função do repositório.
+- No middleware de autenticação, trocar `throw new AppError` por `return next(new AppError(...))`.
+- Verificar o formato das respostas de erro para garantir que os testes de validação e erros 400 passem.
+- Confirmar que a variável `JWT_SECRET` está definida no `.env` e não está hardcoded no código.
+- Melhorar a documentação no `INSTRUCTIONS.md` com exemplos de uso do token JWT no header.
+
+---
+
+Leo, você está no caminho certo! Seu projeto já tem uma base sólida e com esses ajustes você vai conseguir passar todos os testes e entregar uma API segura, robusta e profissional. Continue praticando, revisando seu código e testando cada parte. Sempre que ficar em dúvida, volte aos conceitos básicos de autenticação, manipulação de banco com Knex e tratamento de erros no Express.
+
+Estou torcendo pelo seu sucesso! 💪✨ Se precisar de mais ajuda, é só chamar!
+
+Um abraço do seu Code Buddy! 🤖💙
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
