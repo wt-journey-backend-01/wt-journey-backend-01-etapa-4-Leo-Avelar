@@ -7,7 +7,7 @@ async function findAll(filters) {
     else if (filters.sort === '-dataDeIncorporacao') query.orderBy('dataDeIncorporacao', 'desc');
     
     const agentes = await query;
-    return agentes((agente) => ({
+    return agentes.map((agente) => ({
         ...agente,
         dataDeIncorporacao: agente.dataDeIncorporacao.toISOString().split('T')[0],
     }));

@@ -11,16 +11,12 @@ async function verifyAgente(agenteId) {
 }
 
 async function getAll(req, res) {
-	let casos = await casosRepository.findAll();
+    const filters = {};
+    if (req.query.status) filters.status = req.query.status;
+    if (req.query.agente_id) filters.agente_id = req.query.agente_id;
 
-	if (req.query.status) {
-        casos = casos.filter(caso => caso.status == req.query.status);
-    }
-	if (req.query.agente_id) {
-        casos = casos.filter(caso => caso.agente_id == req.query.agente_id);
-    }
-    
-	res.status(200).json(casos);
+    const casos = await casosRepository.findAll(filters);
+    res.status(200).json(casos);
 }
 
 async function getById(req, res) {

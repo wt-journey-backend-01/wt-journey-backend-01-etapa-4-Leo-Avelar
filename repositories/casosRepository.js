@@ -21,8 +21,8 @@ async function create(caso) {
 }
 
 async function update(id, updatedCasoData) {
-    const updatedCaso = await db('casos').where({ id }).update(updatedCasoData, ['*']);
-    return updatedCaso;
+    const [updatedCaso] = await db('casos').where({ id }).update(updatedCasoData, ['*']);
+    return updatedCaso || null;
 }
 
 async function remove(id) {

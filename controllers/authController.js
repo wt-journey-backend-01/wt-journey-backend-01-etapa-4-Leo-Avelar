@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { AppError } = require('../utils/errorHandler');
 const { registerSchema, loginSchema } = require('../utils/usuarioValidation');
-const { createUser, findByEmail } = require('../repositories/usuariosRepository');
+const { createUser, findByEmail, deleteUser } = require('../repositories/usuariosRepository');
 
 const SECRET = process.env.JWT_SECRET || "secret";
 
@@ -45,7 +45,9 @@ async function register(req, res, next) {
         const parsed = registerSchema.parse(req.body);
         
         const emailExists = await findByEmail(parsed.email);
-        if (emailExists) throw new AppError(400, 'E-mail já cadastrado.');
+        if (emailExists){
+            throw new AppError(400, 'E-mail já cadastrado.');
+        }
 
         const hashed = await bcrypt.hash(parsed.senha, 10);
 
