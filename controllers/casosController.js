@@ -1,6 +1,6 @@
 const casosRepository = require('../repositories/casosRepository');
 const agentesRepository = require('../repositories/agentesRepository');
-const { casoSchema } = require('../utils/casoValidation');
+const { casoSchema, partialCasoSchema } = require('../utils/casoValidation');
 const { AppError } = require('../utils/errorHandler');
 const { z } = require('zod');
 
@@ -129,7 +129,7 @@ async function partialUpdate(req, res, next) {
     }
 
     try {
-        const data = casoSchema.partial().parse(req.body);
+        const data = partialCasoSchema.parse(req.body);
         if (data.agente_id) {
             if (!(await verifyAgente(data.agente_id))) {
                 return res.status(404).json({ message: `Não foi possível encontrar o agente de id: ${data.agente_id}.` });
