@@ -11,13 +11,12 @@ async function findByEmail(email) {
     return db('usuarios').where({ email }).first();
 }
 
-async function deleteUser(id) {
+async function removeUser(id) {
     return db('usuarios').where({ id }).del();
 }
 
 module.exports = {
     createUser,
     findByEmail,
-    findByName,
-    deleteUser
+    removeUser
 };

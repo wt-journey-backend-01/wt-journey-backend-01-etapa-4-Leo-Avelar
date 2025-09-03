@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { AppError } = require('../utils/errorHandler');
 const { registerSchema, loginSchema } = require('../utils/usuarioValidation');
-const { createUser, findByEmail, deleteUser } = require('../repositories/usuariosRepository');
+const { createUser, findByEmail, removeUser } = require('../repositories/usuariosRepository');
 
 const SECRET = process.env.JWT_SECRET || "secret";
 
@@ -74,7 +74,7 @@ async function register(req, res, next) {
 async function deleteUser(req, res, next) {
     const { id } = req.params;
     try {
-        const deleted = await deleteUser(id);
+        const deleted = await removeUser(id);
         if (!deleted) return next(new AppError(404, 'Usuário não encontrado.'));
         
         res.status(204).send();
